@@ -1,7 +1,12 @@
 name: Build & Push Docker
+
 on:
   push:
     branches: [ v4 ]
+  schedule:
+    - cron: '0 */6 * * *'   # 每6小时构建一次
+  workflow_dispatch:         # 允许手动触发
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,9 +23,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: lucykcc/rewards-script:v4.1.0,lucykcc/rewards-script:latest
+          tags: |
+            lucykcc/rewards-script:latest
+            lucykcc/rewards-script:v${{ steps.get_version.outputs.VERSION }}
